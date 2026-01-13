@@ -1,16 +1,18 @@
 import numpy as np
-from ingest import get_stockdata
+from ingest import *
+from pathlib import Path
+
+def main():
+	#min_history = 50
+	#close, high, low, open_, volume = get_stockdata("TJX")
+	#five_day = yz_rolling(min_history, open_, high, low, close)
+	#twenty_day = yz_rolling(min_history, open_, high, low, close, N=20)
+	#volume = volume_z(volume, min_history)
+	df = get_stockdata("NVDA")
+	wiki_forward_fill(df, "NVDA")
 
 def feature_matrix():
 	return
-
-
-def main():
-	min_history = 50
-	close, high, low, open_, volume = get_stockdata("TJX")
-	five_day = yz_rolling(min_history, open_, high, low, close)
-	twenty_day = yz_rolling(min_history, open_, high, low, close, N=20)
-	volume = volume_z(volume, min_history)
 
 def rolling_avg(arr, N):
 	mean = 0
@@ -78,7 +80,42 @@ def volume_z(volume, min_history, N=5):
 
 	return scores
 
-def wiki_forward_fill(stockdata):
+def wiki_forward_fill(stockdata, ticker):
+	if not Path(f"data/raw/{ticker}_views.csv").exists():
+		print(f"{ticker} Wikipedia data does not exist")
+
+	# read wiki
+	wiki_data = pd.read_csv(f"data/raw/{ticker}_views.csv")
+	wiki_data["date"] = pd.to_datetime(wiki_data["date"], format="%Y-%m-%d")
+	wiki_data = wiki_data.set_index("date")
+	wiki_data.index.name = "Date"
+
+	trading_days = stockdata.index
+
+	# map each wiki day to the next trading day >= wiki day
+	pos = trading_days.searchsorted(wiki_data.index, side="left")
+	valid = pos < len(trading_days)
+
+	# keep wiki rows but make out of range ones NaN
+	wiki_data.loc[~valid, "views"] = np.nan
+
+	# holds the date that each row points to for wiki data
+	next_trade = trading_days[pos[valid]]
+
+	# aggregate into buckets. Sum views + number of days rolled into that trading day
+	agg = wiki_data.loc[valid, "views"].groupby(next_trade).agg(["sum", "count"])
+
+	# average out the data
+	rolled_views = (agg["sum"] / agg["count"]).reindex(trading_days)
+
+	print(rolled_views)
+
+	return
+
+
+
+
+
 
 	
 

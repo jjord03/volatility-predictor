@@ -4,6 +4,7 @@ import yfinance as yf
 import requests
 
 
+
 def main():
 	# just some code im using to test stuff
 	tickers = get_tickers()
@@ -14,9 +15,9 @@ def main():
 	article = "Nvidia"
 	granularity = "daily"
 	access = "all-access"
-	df = get_stockdata('NVDA')
-	print(df)
-	#download_pageviews(project, access, agent, article, granularity, start, end)
+	#df = get_stockdata('NVDA')
+	#print(df)
+	download_pageviews("NVDA", project, access, agent, article, granularity, start, end)
 	#download_stockprices(tickers, "1d", start, end)
 
 
@@ -32,7 +33,7 @@ def get_tickers(num:int = 50, seed: int=1):
 
 	return tickers_num
 
-def download_pageviews(project, access, agent, article, granularity, start, end):
+def download_pageviews(ticker, project, access, agent, article, granularity, start, end):
 
 	url = (f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{project}/{access}/{agent}/{article}/{granularity}/{start}/{end}")
 
@@ -52,7 +53,7 @@ def download_pageviews(project, access, agent, article, granularity, start, end)
 
 	df = pd.DataFrame(data)
 	
-	df.to_csv("data/raw/wiki_views.csv", index=False)
+	df.to_csv(f"data/raw/{ticker}_views.csv", index=False)
 
 def modify_date(date):
 	return date[:4] + '-' + date[4:6] + '-' + date[6:8]
@@ -64,11 +65,12 @@ def download_stockprices(tickers, interval, start, end):
 		df.to_csv(f"data/raw/{tickers[i]}_prices.csv")
 
 def get_stockdata(ticker):
-	df = pd.read_csv(f"data/raw/{ticker}_prices.csv", index_col=0, parse_dates=True)
+	df = pd.read_csv(f"data/raw/{ticker}_prices.csv", index_col=0)
 
 	# force index to datetime, non-dates become NaT
-	df.index = pd.to_datetime(df.index, errors="coerce")
+	df.index = pd.to_datetime(df.index, format="%Y-%m-%d", errors="coerce")
 	df = df[df.index.notna()]
+	df.index.name = 'Date'
 
 
 	for col in ["Open", "High", "Low", "Close", "Volume"]:
