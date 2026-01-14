@@ -8,8 +8,8 @@ import requests
 def main():
 	# just some code im using to test stuff
 	tickers = get_tickers()
-	start = "20241212"
-	end = "20260102"
+	start = "2024-12-12"
+	end = "2026-01-02"
 	project = "en.wikipedia.org"
 	agent = "user"
 	article = "Nvidia"
@@ -17,8 +17,8 @@ def main():
 	access = "all-access"
 	#df = get_stockdata('NVDA')
 	#print(df)
-	download_pageviews("NVDA", project, access, agent, article, granularity, start, end)
-	#download_stockprices(tickers, "1d", start, end)
+	#download_pageviews("NVDA", project, access, agent, article, granularity, start, end)
+	download_stockprices(tickers, "1d", start, end)
 
 
 def get_tickers(num:int = 50, seed: int=1):

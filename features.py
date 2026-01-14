@@ -1,15 +1,18 @@
 import numpy as np
+import calendar
+import datetime
 from ingest import *
 from pathlib import Path
 
 def main():
 	#min_history = 50
-	#close, high, low, open_, volume = get_stockdata("TJX")
-	#five_day = yz_rolling(min_history, open_, high, low, close)
 	#twenty_day = yz_rolling(min_history, open_, high, low, close, N=20)
 	#volume = volume_z(volume, min_history)
 	df = get_stockdata("NVDA")
-	wiki_forward_fill(df, "NVDA")
+	five_day = yz_rolling(df)
+	print(five_day)
+	print(len(five_day))
+	print(len(df["Close"]))
 
 def feature_matrix():
 	return
@@ -24,8 +27,12 @@ def rolling_avg(arr, N):
 
 	return mean
 
+def yz_rolling(df, N=5, min_history=20):
+	open_ = df["Open"].to_numpy()
+	high = df["High"].to_numpy()
+	low = df["Low"].to_numpy()
+	close = df["Close"].to_numpy()
 
-def yz_rolling(min_history, open_, high, low, close, N=5):
 	assert N > 1
 	n = len(open_)
 
@@ -112,13 +119,34 @@ def wiki_forward_fill(stockdata, ticker):
 
 	return
 
+def days_to_opex(date):
+	month = date.month
+	year = date.year
 
+	opex = find_third_friday(year, month)
 
+	if opex <= date:
+		month += 1
+		if month > 12:
+			month = 1
+			year += 1
 
+	opex = find_third_friday(year, month)
 
+	return max((opex - date).days - 1, 0)
 
-	
+def find_third_friday(year, month):
 
+	cal = calendar.monthcalendar(year, month)
+	fridays = []
+
+	for week in cal:
+		if week[calendar.FRIDAY] != -1:
+			fridays.append(week[calendar.FRIDAY])
+
+	assert len(fridays) >= 3
+
+	return pd.to_datetime(f"{year}-{month}-{fridays[2]}")
 
 if __name__ == "__main__":
 	main()
