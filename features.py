@@ -5,17 +5,43 @@ from ingest import *
 from pathlib import Path
 
 def main():
-	#min_history = 50
-	#twenty_day = yz_rolling(min_history, open_, high, low, close, N=20)
-	#volume = volume_z(volume, min_history)
 	df = get_stockdata("NVDA")
-	five_day = yz_rolling(df)
-	print(five_day)
-	print(len(five_day))
-	print(len(df["Close"]))
+	const_matrix(df, "NVDA")
 
-def feature_matrix():
-	return
+
+
+def const_matrix(stockdata, ticker):
+    min_history=50
+    vol_30 = yz_rolling(stockdata, N=30, min_history=min_history)
+    vol_5 = yz_rolling(stockdata, min_history=min_history)
+    volvol_wiki = wiki_feat(stockdata, ticker)
+    volvol_volume = volume_z(stockdata["Volume"].to_numpy(), min_history=min_history)
+    dto = np.array([days_to_opex(d) for d in stockdata.index])
+    
+    df_feat = pd.DataFrame(
+        {
+            "vol_30": vol_30,
+            "vol_5": vol_5,
+            "volvol_wiki": volvol_wiki,
+            "volvol_volume": volvol_volume,
+            "days_to_opex": dto
+        },
+        index=stockdata.index
+    )
+    
+    df_feat = df_feat.iloc[30+min_history:]
+    print(df_feat)
+
+    return df_feat
+    
+
+
+def wiki_feat(stockdata, ticker):
+    rolled_views = wiki_forward_fill(stockdata, ticker)
+
+    wiki_vol = volume_z(rolled_views)
+
+    return wiki_vol
 
 def rolling_avg(arr, N):
 	mean = 0
@@ -67,25 +93,23 @@ def yz_rolling(df, N=5, min_history=20):
 
 	return yz
 
-def volume_z(volume, min_history, N=5):
-	log_vol = np.log1p(volume)
-	# Initialize the rolling mean with min_history # days behind
-	rol_vol = np.full(len(log_vol), np.nan)	
+def volume_z(volume, min_history=20, N=5):
+    V = np.log1p(volume)
 
-	for i in range(N - 1, len(rol_vol)):
-		rol_vol[i] = np.mean(log_vol[i-(N-1):i+1])
+    window_mean = np.full(len(V), np.nan)
+    for i in range(N-1, len(V)):
+        window_mean[i] = np.mean(V[i - N + 1:i + 1])
 
-	scores = np.full(len(log_vol), np.nan)
+    hist = window_mean[N-1:min_history]
+    mu = np.mean(hist)
+    sd = np.std(hist)
 
-	for i in range(min_history + N - 1, len(log_vol)):
-		# Volatility in my 5 day window
-		vol_window = rol_vol[i]
-		std = np.std(rol_vol[N - 1:i])
-		rl_mean = np.mean(rol_vol[N - 1:i])
+    scores = np.full(len(V), np.nan)
 
-		scores[i] = (vol_window - rl_mean) / std
+    for i in range(min_history + N - 1, len(V)):
+        scores[i] = (window_mean[i] - mu) / sd
 
-	return scores
+    return scores
 
 def wiki_forward_fill(stockdata, ticker):
 	if not Path(f"data/raw/{ticker}_views.csv").exists():
@@ -108,16 +132,13 @@ def wiki_forward_fill(stockdata, ticker):
 
 	# holds the date that each row points to for wiki data
 	next_trade = trading_days[pos[valid]]
-
 	# aggregate into buckets. Sum views + number of days rolled into that trading day
 	agg = wiki_data.loc[valid, "views"].groupby(next_trade).agg(["sum", "count"])
 
 	# average out the data
 	rolled_views = (agg["sum"] / agg["count"]).reindex(trading_days)
 
-	print(rolled_views)
-
-	return
+	return rolled_views
 
 def days_to_opex(date):
 	month = date.month
@@ -141,12 +162,12 @@ def find_third_friday(year, month):
 	fridays = []
 
 	for week in cal:
-		if week[calendar.FRIDAY] != -1:
+		if week[calendar.FRIDAY] != 0:
 			fridays.append(week[calendar.FRIDAY])
 
 	assert len(fridays) >= 3
 
-	return pd.to_datetime(f"{year}-{month}-{fridays[2]}")
+	return pd.Timestamp(year=year, month=month, day=fridays[2])
 
 if __name__ == "__main__":
-	main()
+    main()
