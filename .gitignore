@@ -1,4 +1,14 @@
+# virtualenv / OS junk
+.venv/
 __pycache__/
+*.pyc
+.DS_Store
+
+# data + outputs (keep folders)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep__pycache__/
 *.pyc
 .venv/
 .env

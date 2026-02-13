@@ -12,11 +12,11 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score 
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor, ExtraTreesRegressor
 
-from volpredict.paths import RAW_DIR
+from volpredict.paths import RAW_DIR, CONFIG_DIR
 
 
 def main():
-	tw = pd.read_csv(RAW_DIR / "constituents.csv")
+	tw = pd.read_csv(CONFIG_DIR / "constituents.csv")
 	
 	names = tw["Symbol"].to_numpy()
 	
